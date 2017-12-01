@@ -422,6 +422,43 @@ class IGService:
         data = self.parse_response(response.text)
         return data
 
+    def fetch_open_position(self, deal_id, session=None):
+        """Returns a deal confirmation for the given deal reference"""
+        params = {}
+        url_params = {
+            'deal_id': deal_id,
+        }
+        endpoint = '/positions/{deal_id}'.format(**url_params)
+        action = 'read'
+        self.crud_session.HEADERS['LOGGED_IN']['Version'] = "2"
+        response = self._req(action, endpoint, params, session)
+        del(self.crud_session.HEADERS['LOGGED_IN']['Version'])
+        data = self.parse_response(response.text)
+        if _HAS_PANDAS and self.return_dataframe:
+            import pandas as pd
+            lst = data['position']
+            data = pd.DataFrame([lst,])
+
+            d_cols = {
+                'market': ['bid', 'delayTime', 'epic', 'expiry', 'high',
+                           'instrumentName', 'instrumentType', 'lotSize',
+                           'low', 'marketStatus', 'netChange', 'offer',
+                           'percentageChange', 'scalingFactor',
+                           'streamingPricesAvailable', 'updateTime', 'updateTimeUTC'],
+                'position': ['contractSize', 'controlledRisk', 'createdDate', 'createdDateUTC',
+                             'currency', 'dealId', 'dealReference', 'direction',
+                             'level', 'limitLevel', 'size', 'stopLevel',
+                             'trailingStep', 'trailingStopDistance']
+            }
+
+            if len(data) == 0:
+                data = pd.DataFrame(columns=self.colname_unique(d_cols))
+                return data
+
+            # data = self.expand_columns(data, d_cols)
+
+        return data
+
     def fetch_open_positions(self, session=None):
         """Returns all open positions for the active account"""
         params = {}
